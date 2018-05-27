@@ -40,9 +40,11 @@ void formatFree(StorageFormat *format);
 
 //ALGORITHMS
 //MatrixVector multiplications
+void matvecCOO(StorageFormat *coo, double *V, double *x, double *y);
 void matvecCSR(StorageFormat *csr, double *V, double *x, double *y);
 void matvecCSC(StorageFormat *csc, double *V, double *x, double *y);
-void matvecSymm(StorageFormat *fmt, double *V, double *x, double *y);
+void matvecCOO_symm(StorageFormat *coo, double *V, double *x, double *y);
+void matvecCSR_symm(StorageFormat *csr, double *V, double *x, double *y);
 
 //Matrix norms
 double normFrobenius(StorageFormat *fmt, double*V);
@@ -54,7 +56,7 @@ int cmpElements(const void * in1, const void * in2);
 double* mm_read_mtx_to_COO(char *path, StorageFormat *coo);
 
 int* newIntArray(size_t size);
-double* newDoubleArray(size_t size);
+double* newDoubleArray(int size);
 //PRINT
 void formatPrint(StorageFormat *format);
 void printIntArray(int *a, size_t size);

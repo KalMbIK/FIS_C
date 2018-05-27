@@ -16,14 +16,14 @@ void formatNewCOO(StorageFormat *coo, int nx, int ny, int nz) {
     formatSetParams(coo, nx, ny, nz);
     coo->I = (int*)calloc(nz, sizeof(int));
     coo->J = (int*)calloc(nz, sizeof(int));
-    coo->matvec = MATVEC_DEFAULT;
+    coo->matvec = &matvecCOO;
 }
 
 void formatNewCSR(StorageFormat *csr, int nx, int ny, int nz) {
     formatSetParams(csr, nx, ny, nz);
     csr->I = (int*)calloc(ny+1, sizeof(int));
     csr->J = (int*)calloc(nz, sizeof(int));
-    csr->matvec = MATVEC_DEFAULT;
+    csr->matvec = &matvecCSR;
 }
 
 void formatNewCSC(StorageFormat *csc, int nx, int ny, int nz) {
@@ -50,6 +50,10 @@ void formatConvertCOOtoCSR(StorageFormat *coo, StorageFormat *csr){
         }
     }
     csr->I[csr->ny]=csr->I[csr->ny-1]+counter;
+    if (coo->matvec==&matvecCOO_symm)
+        csr->matvec=&matvecCSR_symm;
+    else
+        csr->matvec=&matvecCSR;
 }
 
 void formatFree(StorageFormat *format){
@@ -60,6 +64,15 @@ void formatFree(StorageFormat *format){
 
 //ALGORITHMS
 //MatrixVector multiplications
+void matvecCOO(StorageFormat *coo, double *V, double *x, double *y){
+    for (int i = 0; i < coo->nx; ++i) {
+        y[i] = 0;
+    }
+    for (int i = 0; i < coo->nz; ++i) {
+        y[coo->I[i]]+=V[i]*x[coo->J[i]];
+    }
+}
+
 void matvecCSR(StorageFormat *csr, double *V, double *x, double *y) {
     for (int i = 0; i < csr->ny; ++i) {
         y[i] = 0;
@@ -81,14 +94,25 @@ void matvecCSC(StorageFormat *csc, double *V, double *x, double *y) {
     }
 }
 
-void matvecSymm(StorageFormat *fmt, double *V, double *x, double *y){
-    for (int i = 0; i < fmt->ny; ++i) {
-        int i1 = fmt->I[i];
-        int i2 = fmt->I[i+1];
+void matvecCOO_symm(StorageFormat *coo, double *V, double *x, double *y){
+    for (int i = 0; i < coo->nx; ++i) {
+        y[i] = 0;
+    }
+    for (int i = 0; i < coo->nz; ++i) {
+        y[coo->I[i]]+=V[i]*x[coo->J[i]];
+        if (coo->I[i] != coo->J[i])
+            y[coo->J[i]]+=V[i]*x[coo->I[i]];
+    }
+}
+
+void matvecCSR_symm(StorageFormat *csr, double *V, double *x, double *y){
+    for (int i = 0; i < csr->ny; ++i) {
+        int i1 = csr->I[i];
+        int i2 = csr->I[i+1];
         for (int j = i1; j < i2; ++j) {
-            y[i] += V[j]*x[fmt->J[j]];
-            if (i != fmt->J[j])
-                y[fmt->J[j]] += V[j]*x[i];
+            y[i] += V[j]*x[csr->J[j]];
+            if (i != csr->J[j])
+                y[csr->J[j]] += V[j]*x[i];
         }
     }
 }
@@ -135,6 +159,10 @@ double* mm_read_mtx_to_COO(char *path, StorageFormat *coo) {
 
     //Save the data in the right format
     formatNewCOO(coo, nx, ny, nz);
+    if (mm_is_symmetric(matcode)==1){
+        coo->matvec = &matvecCOO_symm;
+    } else
+        coo->matvec = &matvecCOO;
     double *V = newDoubleArray(nz);
     for (int i = 0; i < nz; i++) {
         coo->I[i] = mtrx[i].i;
@@ -151,7 +179,7 @@ int* newIntArray(size_t size){
     return (int*)calloc(size,sizeof(double));
 }
 
-double* newDoubleArray(size_t size){
+double* newDoubleArray(int size){
     return (double*)calloc(size,sizeof(double));
 }
 

@@ -8,6 +8,13 @@ TYPE* newArray(size_t size){
     return (TYPE*)calloc(size,sizeof(TYPE));
 }
 
+TYPE* ones(size_t size){
+    double *v = newArray(size);
+    for (int i = 0; i < size; ++i) {
+        v[i] = 1;
+    }
+    return v;
+}
 void printArray(TYPE *a, size_t size){
     for (int i = 0; i < size; i++){
         printf("%lg ", a[i]);

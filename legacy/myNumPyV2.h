@@ -16,6 +16,7 @@
 #endif //TYPE
 
 TYPE* newArray(size_t size);
+TYPE* ones(size_t size);
 void printArray(TYPE *a, size_t size);
 
 //void arrayOfVectorsToCsv(char *filename, TYPE **vectors, int size, unsigned num);
