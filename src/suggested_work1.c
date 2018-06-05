@@ -65,7 +65,7 @@ void formatFree(StorageFormat *format){
 //ALGORITHMS
 //MatrixVector multiplications
 void matvecCOO(StorageFormat *coo, double *V, double *x, double *y){
-    for (int i = 0; i < coo->nx; ++i) {
+    for (int i = 0; i < coo->ny; ++i) {
         y[i] = 0;
     }
     for (int i = 0; i < coo->nz; ++i) {
@@ -107,6 +107,9 @@ void matvecCOO_symm(StorageFormat *coo, double *V, double *x, double *y){
 
 void matvecCSR_symm(StorageFormat *csr, double *V, double *x, double *y){
     for (int i = 0; i < csr->ny; ++i) {
+        y[i] = 0;
+    }
+    for (int i = 0; i < csr->ny; ++i) {
         int i1 = csr->I[i];
         int i2 = csr->I[i+1];
         for (int j = i1; j < i2; ++j) {
@@ -128,16 +131,17 @@ double normFrobenius(StorageFormat *fmt, double*V){
 
 //OTHER USEFUL METHODS
 //Comparator for sorting the array of MatrixElements
-int cmpElements(const void * in1,const void * in2){
+int cmpElements(const void * in1, const void * in2){
     MatrixElement *a = (MatrixElement*)in1;
     MatrixElement *b = (MatrixElement*)in2;
     int i = a->i - b->i, j = a->j - b->j;
     if (i < 0)
         return -1;
-    if (i == 0)
+    if (i == 0){
         if (j < 0)
             return -1;
         else return 1;
+    }
     return 1;
 }
 
@@ -155,11 +159,11 @@ double* mm_read_mtx_to_COO(char *path, StorageFormat *coo) {
         mtrx[i].i--;
         mtrx[i].j--;
     }
-    qsort(mtrx,nz, sizeof(MatrixElement), &cmpElements);
+    qsort(mtrx, nz, sizeof(MatrixElement), &cmpElements);
 
     //Save the data in the right format
     formatNewCOO(coo, nx, ny, nz);
-    if (mm_is_symmetric(matcode)==1){
+    if (mm_is_symmetric(matcode)){
         coo->matvec = &matvecCOO_symm;
     } else
         coo->matvec = &matvecCOO;

@@ -3,6 +3,8 @@ project(FIS_C C)
 
 set(CMAKE_C_STANDARD 99)
 
+add_compile_options(-Wall -O3)
+
 set(MMio lib/mmio.h lib/mmio.c)
 set(wp1 src/suggested_work1.c src/suggested_work1.h)
 set(wp2 src/suggested_work2.c src/suggested_work2.h)
