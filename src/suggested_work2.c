@@ -6,7 +6,10 @@
 #include "../legacy/myMatrices.h"
 
 void getKrylov(StorageFormat *fmt, double *A, double **V, double **H, int j) {
-    fmt->matvec(fmt, A, V[j], V[j + 1]);
+//    fmt->matvec(fmt, A, V[j], V[j + 1]);
+    fmt->matvec(fmt, A, V[j], fmt->Z);
+    sparseDiag(fmt, A, fmt->Z, V[j + 1]);
+//    sparseForwardSubstitution(fmt, A, fmt->Z, V[j + 1]);
     double *hj = H[j];
     double *w = V[j + 1];
     size_t n = (size_t) fmt->nx;
@@ -87,8 +90,12 @@ void GMRES_init(StorageFormat *fmt, double *A, double *b, double *x, double *r, 
     int n = fmt->nx;
     fmt->matvec(fmt, A, x, r);
     subtr(b, r, r, n);
-    *g = getNorm(r, n);
-    constMult(r, 1 / (*g), *V, n);
+//    *g = getNorm(r, n);
+//    constMult(r, 1 / (*g), *V, n);
+    sparseDiag(fmt, A, r, *V);
+//    sparseForwardSubstitution(fmt, A, b, *V);
+    *g = getNorm(*V, n);
+    constMult(*V, 1 / (*g), *V, n);
 }
 
 //GMRES-body
@@ -142,20 +149,39 @@ double *GMRES_restarted(StorageFormat *fmt, double *A, double *x0, double *b, in
 
 //CG METHOD
 
-double * CG_body(StorageFormat *fmt, double *A, double *x0, double *b, double tol) {
+void CG_malloc(int n, double **r_m, double **p_m, double **Ap_m) {
+    double *x = newDoubleArray(3 * n);
+    *r_m = x;
+    *p_m = x + n;
+    *Ap_m = x + n + n;
+}
+
+void CG_free(double *r_m, double *p_m, double *Ap_m) {
+    free(r_m);
+}
+
+double *CG_body(StorageFormat *fmt, double *A, double *x0, double *b, double tol) {
     int n = fmt->nx;
     double *x = newDoubleArray(n);
     memcpy(x, x0, n * sizeof(double));
-    double *r_m = newDoubleArray(n);
-    double *p_m = newDoubleArray(n);
-    double *Ap_m = newDoubleArray(n);
-    fmt->matvec(fmt, A, x0, r_m);
-    subtr(b, r_m, p_m, n);
-    double r_m_norm_sq = dot(r_m, r_m, n);
+
+    int iters = 0;
+    double qtol = tol * tol;
     double ro = 1;
     double alpha;
-    tol *= tol;
-    while (ro > tol) {
+    double *r_m, *p_m, *Ap_m;
+
+    CG_malloc(n, &r_m, &p_m, &Ap_m);
+    //r0=b-Ax0, p=r0, (r0,r0)
+    fmt->matvec(fmt, A, x0, r_m);
+    subtr(b, r_m, r_m, n);
+    memcpy(p_m, r_m, n * sizeof(double));
+//    printDoubleArray(p_m,n);
+    double r_m_norm_sq = dot(r_m, r_m, n);
+    printf("%lg\n", r_m_norm_sq);
+    double r_0_norm_sq = r_m_norm_sq, rel_error = 1;
+
+    while (rel_error > qtol) {
         fmt->matvec(fmt, A, p_m, Ap_m); //Apm = A*pm
         alpha = r_m_norm_sq / dot(Ap_m, p_m, n);
         for (int i = 0; i < n; ++i) {
@@ -168,6 +194,48 @@ double * CG_body(StorageFormat *fmt, double *A, double *x0, double *b, double to
             p_m[i] = r_m[i] + alpha * p_m[i];
         }
         r_m_norm_sq = ro;
+        rel_error = r_m_norm_sq/r_0_norm_sq;
+        if (iters % 1000 == 0){
+            printf("Iter: %d, Rel_error=%lg\n", iters, rel_error);
+        }
+        iters++;
     }
+    printf("---\nFINISHED\nIter: %d, Rel_error=%lg\n---\n", iters, rel_error);
+
+    CG_free(r_m, p_m, Ap_m);
     return x;
+}
+
+//PRECONDITIONING
+void sparseForwardSubstitution(StorageFormat *fmt, double *A, double *b, double *x) {
+    x[0] = b[0] / A[0];
+    int n = fmt->nx;
+    for (int i = 1; i < n; ++i) {
+        int i1 = fmt->I[i];
+        int i2 = fmt->I[i + 1];
+        double sum = 0;
+        int j;
+        for (j = i1; j < i2; ++j) {
+            if (fmt->J[j] < i) {
+                sum += A[j] * x[fmt->J[j]];
+            } else {
+                break;
+            }
+        }
+        x[i] = (b[i] - sum) / A[j];
+    }
+}
+
+void sparseDiag(StorageFormat *fmt, double *A, double *b, double *x) {
+    int n = fmt->nx;
+    for (int i = 0; i < n; ++i) {
+        int i1 = fmt->I[i];
+        int i2 = fmt->I[i + 1];
+        for (int j = i1; j < i2; ++j) {
+            if (fmt->J[j] == i) {
+                x[i] = b[i] / A[j];
+                break;
+            }
+        }
+    }
 }

@@ -120,6 +120,11 @@ void matvecCSR_symm(StorageFormat *csr, double *V, double *x, double *y){
     }
 }
 
+
+void matvecCSR_leftSeidel(StorageFormat *csr, double *V, double *x, double *y){
+
+}
+
 //Matrix norms
 double normFrobenius(StorageFormat *fmt, double*V){
     double norm = 0;

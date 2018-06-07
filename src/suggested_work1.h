@@ -16,9 +16,10 @@
 
 //With this data structure we could store the matrix as discussed in class
 struct StorageFormat{
-    void (*matvec)(struct StorageFormat*, double*, double*, double*);
     int nx, ny, nz;
     int *I, *J;
+    double *Z;
+    void (*matvec)(struct StorageFormat*, double*, double*, double*);
 };
 typedef struct StorageFormat StorageFormat;
 
@@ -45,6 +46,8 @@ void matvecCSR(StorageFormat *csr, double *V, double *x, double *y);
 void matvecCSC(StorageFormat *csc, double *V, double *x, double *y);
 void matvecCOO_symm(StorageFormat *coo, double *V, double *x, double *y);
 void matvecCSR_symm(StorageFormat *csr, double *V, double *x, double *y);
+void matvecCSR_leftSeidel(StorageFormat *csr, double *V, double *x, double *y);
+
 
 //Matrix norms
 double normFrobenius(StorageFormat *fmt, double*V);

@@ -7,6 +7,14 @@
 
 #include "suggested_work1.h"
 
+struct SparseSolver{
+    StorageFormat *fmt;
+    double *A, *b, *x;
+
+    double (*solve)(struct StorageFormat*, ...);
+};
+typedef struct SparseSolver SparseSolver;
+
 void getKrylov(StorageFormat *fmt, double *A, double **V, double **H, int j);
 void applyGivensRotations(int j, double* c, double* s, double** H, double* g);
 void assembleSolution(double** V, double* y, double* x0, double* xm, int n, int m);
@@ -26,5 +34,14 @@ double *GMRES_full(StorageFormat *fmt, double *A, double *x0, double *b, int m);
 double *GMRES_restarted(StorageFormat *fmt, double *A, double *x0, double *b, int m, double tol);
 
 //CG METHOD
+void CG_malloc(int n, double **r_m, double **p_m, double **Ap_m);
+
+void CG_free(double *r_m, double *p_m, double *Ap_m);
+
 double * CG_body(StorageFormat *fmt, double *A, double *x0, double *b, double tol);
+
+//PRECONDITIONING
+void sparseForwardSubstitution(StorageFormat *fmt, double *A, double *b, double *x);
+
+void sparseDiag(StorageFormat *fmt, double *A, double* b, double* x);
 #endif //FIS_C_SUGGESTED_WORK2_H

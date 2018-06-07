@@ -12,3 +12,4 @@ set(MyNP legacy/myMatrices.h legacy/myMatrices.c legacy/myNumPyV2.h legacy/myNum
 set(main src/main.c)
 
 add_executable(FIS_C ${MMio} ${MyNP} ${wp1} ${wp2} ${main})
+#add_executable(FIS_C ${MMio} main.c)
